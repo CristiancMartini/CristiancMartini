@@ -1,0 +1,37 @@
+name: GitHub Profile 3D Contrib
+
+on:
+  schedule:
+    # Once a day at 03:00 UTC (00:00 BRT). Manual run still available.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: generate-full-history-3d-graph
+    steps:
+      - uses: actions/checkout@v5
+
+      # Single 3D graph covering the whole contribution history.
+      # PERSONAL_TOKEN (PAT with repo scope) allows counting private/org repos.
+      - name: Generate full-history 3D graph
+        run: node scripts/generate-full-history.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_USERNAME: ${{ github.repository_owner }}
+
+      # Amend the single existing commit and force push, so the repo
+      # always keeps exactly one commit in its history.
+      - name: Commit & Push
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add -A .
+          if ! git diff --cached --quiet; then
+            git commit --amend --no-edit
+            git push --force
+          fi
